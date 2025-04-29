@@ -5,7 +5,7 @@ import re
 import openai
 from openai import OpenAI
 from streamlit_chat import message
-import time  # <-- Agregado aquí
+import time
 
 # Configuración de la página
 st.set_page_config(page_title="Generador de Contratos Inteligentes", layout="wide")
@@ -79,25 +79,30 @@ if prompt:
     # Guardar pregunta del usuario
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Esperar 1.5 segundos para evitar Rate Limit de OpenAI
+    # Esperar para evitar RateLimitError
     time.sleep(1.5)
 
-    # Construir contexto
-    context = contrato_final if contrato_final else "Asiste en temas de contratos jurídicos."
+    # Usar resumen del contrato para reducir tokens
+    if contrato_final:
+        resumen_contrato = contrato_final[:500]  # solo los primeros 500 caracteres
+    else:
+        resumen_contrato = "Contrato de compraventa. Solicito asistencia jurídica."
 
-    # Nueva forma de crear la solicitud al modelo OpenAI
-    respuesta = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": f"Actúa como asesor jurídico experto. El contrato actual es: {context}"},
-            *st.session_state.messages
-        ]
-    )
+    # Solicitar respuesta a OpenAI
+    try:
+        respuesta = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": f"Eres un abogado experto. Este es el resumen del contrato: {resumen_contrato}"},
+                *st.session_state.messages
+            ]
+        )
 
-    respuesta_texto = respuesta.choices[0].message.content
+        respuesta_texto = respuesta.choices[0].message.content
 
-    # Guardar respuesta
+    except Exception as e:
+        respuesta_texto = "⚠️ Error al consultar OpenAI: intenta nuevamente más tarde."
+
+    # Guardar y mostrar respuesta
     st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
-
-    # Mostrar respuesta
     message(respuesta_texto, is_user=False)
