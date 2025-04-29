@@ -1,19 +1,21 @@
 # app.py
 
 import streamlit as st
+from streamlit_sortables import sortables
 
-# Título de la app
-st.title("Generador de Contratos Jurídicos 📜")
+import re
+
+st.set_page_config(page_title="Generador de Contratos Inteligentes", layout="wide")
+st.title("📜 Generador de Contratos Jurídicos Inteligentes")
 
 # Subir archivo .txt de contrato
 uploaded_file = st.file_uploader("Sube tu contrato modelo (.txt)", type="txt")
 
 if uploaded_file is not None:
-    # Leer el contenido del archivo
+    # Leer contenido
     contrato = uploaded_file.read().decode('utf-8')
 
-    # Dividir en cláusulas por encabezados (PRIMERO., SEGUNDO., etc.)
-    import re
+    # Dividir en cláusulas por encabezados tipo PRIMERO., SEGUNDO., etc.
     patron = r'\b(PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|SEXTO|SÉPTIMO|OCTAVO|NOVENO|DÉCIMO|UNDÉCIMO|DUODÉCIMO|DECIMOTERCERO|DECIMOCUARTO|DECIMOQUINTO|DECIMOSEXTO)\b\.'
     partes = re.split(patron, contrato)
 
@@ -25,26 +27,25 @@ if uploaded_file is not None:
         clausulas.append(f"{titulo} {contenido}")
         i += 2
 
-    st.header("Cláusulas detectadas:")
-    # Mostrar cláusulas y permitir reordenarlas
-    orden = st.multiselect(
-        'Reordena las cláusulas seleccionando el nuevo orden',
-        options=list(range(1, len(clausulas)+1)),
-        default=list(range(1, len(clausulas)+1))
-    )
+    st.header("🧩 Reordena las cláusulas arrastrándolas:")
 
-    if orden:
-        contrato_final = ""
-        for idx in orden:
-            contrato_final += clausulas[idx-1] + "\n\n"
+    # Drag & Drop visual real
+    new_order = sortables(clausulas, direction="vertical", key="sortable_clausulas")
 
-        st.header("Contrato Final:")
-        st.text_area("Aquí tienes el contrato final:", contrato_final, height=500)
+    st.divider()
 
-        # Descargar como TXT
+    if new_order:
+        contrato_final = "\n\n".join(new_order)
+
+        st.header("📄 Contrato Final Reordenado:")
+
+        st.text_area("Aquí tienes tu contrato listo:", contrato_final, height=500)
+
+        # Descargar como archivo TXT
         st.download_button(
-            label="Descargar contrato como .txt",
+            label="Descargar contrato final (.txt)",
             data=contrato_final,
             file_name='Contrato_Generado.txt',
             mime='text/plain'
         )
+
