@@ -5,6 +5,7 @@ import re
 import openai
 from openai import OpenAI
 from streamlit_chat import message
+import time  # <-- Agregado aquí
 
 # Configuración de la página
 st.set_page_config(page_title="Generador de Contratos Inteligentes", layout="wide")
@@ -78,10 +79,13 @@ if prompt:
     # Guardar pregunta del usuario
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Construir contexto (opcional: puedes agregar el contrato actual si quieres dar contexto)
+    # Esperar 1.5 segundos para evitar Rate Limit de OpenAI
+    time.sleep(1.5)
+
+    # Construir contexto
     context = contrato_final if contrato_final else "Asiste en temas de contratos jurídicos."
 
-    # Nueva forma de crear la solicitud al modelo
+    # Nueva forma de crear la solicitud al modelo OpenAI
     respuesta = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
