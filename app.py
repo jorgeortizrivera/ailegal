@@ -1,10 +1,9 @@
 # app.py
 
 import streamlit as st
-from streamlit_sortables import sortables
 import re
 
-# Configuración de página
+# Configuración de la página
 st.set_page_config(page_title="Generador de Contratos Inteligentes", layout="wide")
 st.title("📜 Generador de Contratos Jurídicos Inteligentes")
 
@@ -15,7 +14,7 @@ if uploaded_file is not None:
     # Leer contenido del archivo
     contrato = uploaded_file.read().decode('utf-8')
 
-    # Dividir el contrato en cláusulas detectando encabezados como PRIMERO., SEGUNDO., etc.
+    # Dividir contrato en cláusulas detectando encabezados tipo PRIMERO., SEGUNDO., etc.
     patron = r'\b(PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|SEXTO|SÉPTIMO|OCTAVO|NOVENO|DÉCIMO|UNDÉCIMO|DUODÉCIMO|DECIMOTERCERO|DECIMOCUARTO|DECIMOQUINTO|DECIMOSEXTO)\b\.'
     partes = re.split(patron, contrato)
 
@@ -28,27 +27,28 @@ if uploaded_file is not None:
         clausulas.append(f"{titulo} {contenido}")
         i += 2
 
-    st.header("🧩 Reordena las cláusulas arrastrándolas:")
+    st.header("🧩 Ordena las cláusulas seleccionando el nuevo orden:")
 
-    # Drag & Drop real
-    new_order = sortables(
-        items=clausulas,
-        direction="vertical",
-        label="Cláusulas",
-        key="sortable_clausulas"
+    # Mostrar lista numerada
+    clausulas_mostradas = [f"Cláusula {i+1}: {clausula[:80]}..." for i, clausula in enumerate(clausulas)]
+
+    # Permitir selección múltiple en el orden que elija el usuario
+    orden = st.multiselect(
+        "Selecciona las cláusulas en el orden que quieras que aparezcan:",
+        options=list(range(1, len(clausulas)+1)),
+        format_func=lambda x: clausulas_mostradas[x-1],
+        default=list(range(1, len(clausulas)+1))
     )
 
     st.divider()
 
-    if new_order:
-        # Armar el contrato final reordenado
-        contrato_final = "\n\n".join(new_order)
+    if orden:
+        contrato_final = "\n\n".join([clausulas[idx-1] for idx in orden])
 
         st.header("📄 Contrato Final Reordenado:")
-
         st.text_area("Aquí tienes el contrato final:", contrato_final, height=500)
 
-        # Botón de descarga en TXT
+        # Botón de descarga
         st.download_button(
             label="📥 Descargar contrato como .txt",
             data=contrato_final,
