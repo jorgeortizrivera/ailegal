@@ -3,14 +3,15 @@
 import streamlit as st
 import re
 import openai
+from openai import OpenAI
 from streamlit_chat import message
 
 # Configuración de la página
 st.set_page_config(page_title="Generador de Contratos Inteligentes", layout="wide")
 st.title("📜 Generador de Contratos Jurídicos Inteligentes")
 
-# Configurar OpenAI desde los Secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Configurar cliente de OpenAI
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Subir archivo .txt de contrato
 uploaded_file = st.file_uploader("Sube tu contrato modelo (.txt)", type="txt")
@@ -77,11 +78,11 @@ if prompt:
     # Guardar pregunta del usuario
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Construir contexto (si quieres, puedes agregar más contexto aquí)
+    # Construir contexto (opcional: puedes agregar el contrato actual si quieres dar contexto)
     context = contrato_final if contrato_final else "Asiste en temas de contratos jurídicos."
 
-    # Pedir respuesta a OpenAI
-    respuesta = openai.ChatCompletion.create(
+    # Nueva forma de crear la solicitud al modelo
+    respuesta = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": f"Actúa como asesor jurídico experto. El contrato actual es: {context}"},
@@ -89,7 +90,7 @@ if prompt:
         ]
     )
 
-    respuesta_texto = respuesta.choices[0].message["content"]
+    respuesta_texto = respuesta.choices[0].message.content
 
     # Guardar respuesta
     st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
