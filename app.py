@@ -2,14 +2,20 @@
 
 import streamlit as st
 import re
+import openai
+from streamlit_chat import message
 
 # Configuración de la página
 st.set_page_config(page_title="Generador de Contratos Inteligentes", layout="wide")
 st.title("📜 Generador de Contratos Jurídicos Inteligentes")
 
+# Configurar OpenAI desde los Secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
 # Subir archivo .txt de contrato
 uploaded_file = st.file_uploader("Sube tu contrato modelo (.txt)", type="txt")
 
+contrato_final = ""
 if uploaded_file is not None:
     # Leer contenido del archivo
     contrato = uploaded_file.read().decode('utf-8')
@@ -40,16 +46,53 @@ if uploaded_file is not None:
     st.divider()
 
     if seleccionadas:
-        # Generar el contrato final basado en las cláusulas seleccionadas
         contrato_final = "\n\n".join([clausulas[idx-1] for idx in seleccionadas])
 
         st.header("📄 Contrato Final:")
         st.text_area("Aquí tienes tu contrato final:", contrato_final, height=500)
 
-        # Botón de descarga
         st.download_button(
             label="📥 Descargar contrato como .txt",
             data=contrato_final,
             file_name="Contrato_Generado.txt",
             mime="text/plain"
         )
+
+# ----------------- CHATBOT EN BARRA LATERAL -----------------
+
+st.sidebar.title("💬 Asistente Jurídico IA")
+
+# Inicializar historial de conversación
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Mostrar mensajes anteriores
+for msg in st.session_state.messages:
+    message(msg["content"], is_user=msg["role"] == "user")
+
+# Entrada de usuario
+prompt = st.sidebar.text_input("Escribe tu pregunta o solicitud:")
+
+if prompt:
+    # Guardar pregunta del usuario
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Construir contexto (si quieres, puedes agregar más contexto aquí)
+    context = contrato_final if contrato_final else "Asiste en temas de contratos jurídicos."
+
+    # Pedir respuesta a OpenAI
+    respuesta = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": f"Actúa como asesor jurídico experto. El contrato actual es: {context}"},
+            *st.session_state.messages
+        ]
+    )
+
+    respuesta_texto = respuesta.choices[0].message["content"]
+
+    # Guardar respuesta
+    st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
+
+    # Mostrar respuesta
+    message(respuesta_texto, is_user=False)
